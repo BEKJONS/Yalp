@@ -1,0 +1,45 @@
+services:
+  ulab-yalpdb:
+    image: postgres:latest
+    container_name: ulab-yalpdb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123321
+      POSTGRES_DB: ulab-yalpdb
+    ports:
+      - "5431:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ulab-yalp
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d ulab-yalpdb -U postgres" ]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+
+  ulab-yalp-redis:
+    image: redis:latest
+    container_name: yalp_ulab-redis
+    ports:
+      - "6378:6379"
+    networks:
+      - ulab-yalp
+
+  migrate:
+    image: "migrate/migrate"
+    networks:
+      - ulab-yalp
+    volumes:
+      - /home/jons/go/src/github.com/projects/Projects-/Yalp/migrations:/migrations
+    command: [ "-path", "/migrations", "-database", "postgres://postgres:123321@ulab-yalpdb:5432/ulab-yalpdb?sslmode=disable", "up" ]
+    depends_on:
+      ulab-yalpdb:
+        condition: service_healthy
+networks:
+  ulab-yalp:
+    external: true
+
+volumes:
+  postgres_data:
+    name: ulab_yalp
